@@ -15,7 +15,7 @@ import numpy as np
 
 class Model(nn.Module):
 
-    def __init__(self, input_size=128, lstm_size=128, lstm_layers=1, output_size=128):
+    def __init__(self, input_size=128, lstm_size=128, lstm_layers=4, output_size=128):
         # Call parent
         super().__init__()
         # Define parameters
