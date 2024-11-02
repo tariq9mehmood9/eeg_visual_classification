@@ -8,10 +8,11 @@ parser = argparse.ArgumentParser(description="Template")
 ### BLOCK DESIGN ###
 #Data
 #parser.add_argument('-ed', '--eeg-dataset', default=r"data\block\eeg_55_95_std.pth", help="EEG dataset path") #55-95Hz
-parser.add_argument('-ed', '--eeg-dataset', default=r"data\block\eeg_5_95_std.pth", help="EEG dataset path") #5-95Hz
+# parser.add_argument('-ed', '--eeg-dataset', default=r"data/block/eeg_5_95_std.pth", help="EEG dataset path") #5-95Hz
 #parser.add_argument('-ed', '--eeg-dataset', default=r"data\block\eeg_14_70_std.pth", help="EEG dataset path") #14-70Hz
+parser.add_argument('-ed', '--eeg-dataset', default=r"data/block/eeg_signals_raw_with_mean_std.pth", help="EEG dataset path") #raw
 #Splits
-parser.add_argument('-sp', '--splits-path', default=r"data\block\block_splits_by_image_all.pth", help="splits path") #All subjects
+parser.add_argument('-sp', '--splits-path', default=r"data/block/block_splits_by_image_all.pth", help="splits path") #All subjects
 #parser.add_argument('-sp', '--splits-path', default=r"data\block\block_splits_by_image_single.pth", help="splits path") #Single subject
 ### BLOCK DESIGN ###
 
@@ -33,13 +34,13 @@ parser.add_argument('-mp','--model_params', default='', nargs='*', help='list of
 parser.add_argument('--pretrained_net', default='', help="path to pre-trained net (to continue training)")
 
 # Training options
-parser.add_argument("-b", "--batch_size", default=16, type=int, help="batch size")
+parser.add_argument("-b", "--batch_size", default=1024, type=int, help="batch size")
 parser.add_argument('-o', '--optim', default="Adam", help="optimizer")
 parser.add_argument('-lr', '--learning-rate', default=0.001, type=float, help="learning rate")
 parser.add_argument('-lrdb', '--learning-rate-decay-by', default=0.5, type=float, help="learning rate decay factor")
-parser.add_argument('-lrde', '--learning-rate-decay-every', default=10, type=int, help="learning rate decay period")
-parser.add_argument('-dw', '--data-workers', default=4, type=int, help="data loading workers")
-parser.add_argument('-e', '--epochs', default=200, type=int, help="training epochs")
+parser.add_argument('-lrde', '--learning-rate-decay-every', default=50, type=int, help="learning rate decay period")
+parser.add_argument('-dw', '--data-workers', default=8, type=int, help="data loading workers")
+parser.add_argument('-e', '--epochs', default=2048, type=int, help="training epochs")
 
 # Save options
 parser.add_argument('-sc', '--saveCheck', default=100, type=int, help="learning rate")
@@ -130,7 +131,9 @@ class Splitter:
         # Return
         return eeg, label
 
-
+if not os.path.isdir('ckpt'):
+	os.makedirs('ckpt')
+	os.makedirs('bestckpt')
 # Load dataset
 dataset = EEGDataset(opt.eeg_dataset)
 # Create loaders
@@ -213,6 +216,7 @@ for epoch in range(1, opt.epochs+1):
         best_accuracy_val = accuracies["val"]/counts["val"]
         best_accuracy = accuracies["test"]/counts["test"]
         best_epoch = epoch
+        torch.save(model, 'bestckpt/%s__subject%d_epoch_%d_besttest_%f_.pth' % (opt.model_type, opt.subject,epoch, best_accuracy))
     
     TrL,TrA,VL,VA,TeL,TeA=  losses["train"]/counts["train"],accuracies["train"]/counts["train"],losses["val"]/counts["val"],accuracies["val"]/counts["val"],losses["test"]/counts["test"],accuracies["test"]/counts["test"]
     print("Model: {11} - Subject {12} - Time interval: [{9}-{10}]  [{9}-{10} Hz] - Epoch {0}: TrL={1:.4f}, TrA={2:.4f}, VL={3:.4f}, VA={4:.4f}, TeL={5:.4f}, TeA={6:.4f}, TeA at max VA = {7:.4f} at epoch {8:d}".format(epoch,
@@ -232,5 +236,5 @@ for epoch in range(1, opt.epochs+1):
     accuracies_per_epoch['test'].append(TeA)
 
     if epoch%opt.saveCheck == 0:
-                torch.save(model, '%s__subject%d_epoch_%d.pth' % (opt.model_type, opt.subject,epoch))
+                torch.save(model, 'ckpt/%s__subject%d_epoch_%d.pth' % (opt.model_type, opt.subject,epoch))
             
